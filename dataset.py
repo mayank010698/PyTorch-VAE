@@ -9,19 +9,25 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from torchvision.datasets import CelebA
 import zipfile
+import h5py
 
 
 # Add your custom dataset class here
 class MyDataset(Dataset):
-    def __init__(self):
-        pass
-    
+    def __init__(self,data_path: str, split: str):
+        self.f = h5py.File(data_path)
+        self.train_dat = self.f["X_jets"][:100000]
+        self.test_dat = self.f["X_jets"][100001:]
+        if split == 'train':
+            self.dat  = self.train_dat
+        else:
+            self.dat = self.test_dat
     
     def __len__(self):
-        pass
+        return self.train_dat.shape[0]
     
     def __getitem__(self, idx):
-        pass
+        return self.dat[idx]
 
 
 class MyCelebA(CelebA):
@@ -136,20 +142,32 @@ class VAEDataset(LightningDataModule):
                                             transforms.Resize(self.patch_size),
                                             transforms.ToTensor(),])
         
-        self.train_dataset = MyCelebA(
+        # self.train_dataset = MyCelebA(
+        #     self.data_dir,
+        #     split='train',
+        #     transform=train_transforms,
+        #     download=False,
+        # )
+        
+        # # Replace CelebA with your dataset
+        # self.val_dataset = MyCelebA(
+        #     self.data_dir,
+        #     split='test',
+        #     transform=val_transforms,
+        #     download=False,
+        # )
+        
+        self.train_dataset = MyDataset(
             self.data_dir,
             split='train',
-            transform=train_transforms,
-            download=False,
         )
         
         # Replace CelebA with your dataset
-        self.val_dataset = MyCelebA(
+        self.val_dataset = MyDataset(
             self.data_dir,
             split='test',
-            transform=val_transforms,
-            download=False,
         )
+
 #       ===============================================================
         
     def train_dataloader(self) -> DataLoader:
